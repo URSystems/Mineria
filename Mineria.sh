@@ -189,7 +189,7 @@ DownloadByWordGoogleMaps(){
 			else
 				mkdir $unicid
 				cd $unicid
-				touch $search_word.search
+				echo GoogleMapSearch > $search_word.search
 				echo \[$names_count_temp\/$urls_count] Downloading $unicid gallery ...
 				curl --connect-timeout 5 --max-time 20 -s -# -L -A "Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3" -o down.kmz "https://www.google.com/maps/d/kml?mid=$unicid"
 				if [ ! -f down.kmz ]
@@ -238,7 +238,7 @@ DownloadByWordGoogle(){
 		while [ "$results" -ne "0" ]
 		do
 			echo Downloading kmz page for search \"$search_word\" start = $start ...
-			echo "https://www.google.es/search?q=$search_word+filetype:kmz#q=urbex+filetype:kmz&start=$start"
+			echo "https://www.google.es/search?q=$search_word+filetype:kmz&start=$start"
 			curl --connect-timeout 5 --max-time 20 -s -# -L -A "Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3" -o zz_page.html "https://www.google.es/search?q=$search_word+filetype:kmz&start=$start"
 			#Verify we downloaded somethig
 			if [ ! -f zz_page.html ]
@@ -261,7 +261,7 @@ DownloadByWordGoogle(){
 					else
 						mkdir $unicid
 						cd $unicid
-						echo DownloadByWordGoogle $start > $search_word.search
+						echo GoogleKmlFileSearch $start > $search_word.search
 						echo \[$names_count_temp\/$urls_count] Downloading $unicid gallery ...
 						curl --connect-timeout 5 --max-time 20 -s -# -L -A "Mozilla/5.0 (Windows; U; Windows NT 5.1; de; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3" -o down.kmz $line
 						if [ ! -f down.kmz ]
@@ -276,7 +276,7 @@ DownloadByWordGoogle(){
 					fi
 				done
 				rm -f DownloadByWordGoogle.list
-				if [ "$urls_count" -ne "10" ]
+				if [ "$urls_count" -lt "10" ]
 				then
 					echo ERROR: google search for $search_word dint return 10.
 					results=0
@@ -318,7 +318,7 @@ Delete0CoordsDirs(){
 				else
 					echo \[$folders_count_temp\/$names_count] OK $GoogleKey
 				fi
-				#rm -f zz_coords.list
+				rm -f zz_coords.list
 				if [ -d images ]
 				then
 					rm -rf images
@@ -397,13 +397,15 @@ MySqlGenerate(){
 					echo \[$folders_count_temp\/$names_count] ERROR: $GoogleKey Unable to find down.kmz file in directory|tee -a ../../MySqlGenerate.log
 				else
 					#Getting coords from doc.kml and storing in zz_coords.list
+					SearchWord=`ls|grep .search|cut -f1 -d"."`
+					SearchMethod=`cat $SearchWord.search`
 					exec 2<&-
 					zcat down.kmz|grep '<coordinates>'|cut -f2 -d">"|cut -f1 -d"<"|tr " " "\n">zz_coords.list
 					coords_num=`cat zz_coords.list|wc -l`
 					if [ "$coords_num" -ne "0" ]
 					then
 						echo \[$folders_count_temp\/$names_count] Generating $GoogleKey mysql code with $coords_num inserts
-						echo INSERT INTO GoogleInfo \(IdUnic, GoogleKey\) VALUES \(NULL, \"$GoogleKey\"\)\; > mysql.code
+						echo INSERT INTO GoogleInfo \(IdUnic, GoogleKey, SearchMethod, SearchWord\) VALUES \(NULL, \"$GoogleKey\"\, \"$SearchMethod\", \"$SearchWord\"\)\; > mysql.code
 						echo INSERT INTO Positions \(GoogleKeyIdUnic,Location\) VALUES >> mysql.code
 						coord_count=0;
 						for coord in `cat zz_coords.list` 
@@ -534,13 +536,13 @@ MySqlInsert(){
 	do
 		mysql_count_temp=`echo $[$mysql_count_temp+1]`
 		GoogleKey=`echo $file|cut -f2 -d"/"`
-		return=`mysql -h 127.0.0.1 -u root -e "SELECT idunic FROM GoogleInfo WHERE GoogleKey = \"$GoogleKey\"" $project|head -4|tail -1|tr -s " "|cut -f2 -d" "`
+		return=`mysql -e "SELECT idunic FROM GoogleInfo WHERE GoogleKey = \"$GoogleKey\"" $project|head -4|tail -1|tr -s " "|cut -f2 -d" "`
 		if [ "$return" != "" ]
 		then
 			echo \[$mysql_count_temp/$mysql_count\] ERROR: $GoogleKey is allready in the database|tee -a ../MySqlInsert.log
 		else
 			echo \[$mysql_count_temp/$mysql_count\] Inserting $GoogleKey ...
-			mysql -h 127.0.0.1 -u root $project < $file
+			mysql $project < $file
 			if [ "$?" -eq "0" ]
 			then
 				mv $file $GoogleKey/mysql.inserted
