@@ -27,7 +27,9 @@ CREATE DATABASE IF NOT EXISTS DummyName DEFAULT CHARACTER SET latin1 COLLATE lat
 USE DummyName;
 CREATE TABLE GoogleInfo (
 IdUnic int(11) NOT NULL,
-  GoogleKey tinytext COLLATE latin1_spanish_ci NOT NULL
+  GoogleKey tinytext COLLATE latin1_spanish_ci NOT NULL,
+  SearchWord tinytext COLLATE latin1_spanish_ci NOT NULL,
+  SearchMethod tinytext COLLATE latin1_spanish_ci NOT NULL
 ) ENGINE=MyISAM AUTO_INCREMENT=1 DEFAULT CHARSET=latin1 COLLATE=latin1_spanish_ci;
 CREATE TABLE Positions (
 IdUnic int(11) NOT NULL,
